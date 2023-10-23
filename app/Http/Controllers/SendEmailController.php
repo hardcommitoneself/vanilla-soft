@@ -2,15 +2,29 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use App\Utilities\Contracts\ElasticsearchHelperInterface;
 use App\Utilities\Contracts\RedisHelperInterface;
+use App\Mail\SendVanillaSoftMail;
 
-class EmailController extends Controller
+class SendEmailController extends Controller
 {
-    // TODO: finish implementing send method
-    public function send()
+    /**
+     * Handle the incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function __invoke(Request $request)
     {
+        /** Send Email to reciepient users */
+        $emails = $request->input('emails');
 
+        foreach($emails as $email) {
+            Mail::to(data_get($email, 'email'))
+                ->queue(new SendVanillaSoftMail($email));
+        }
 
         /** @var ElasticsearchHelperInterface $elasticsearchHelper */
         $elasticsearchHelper = app()->make(ElasticsearchHelperInterface::class);
@@ -21,11 +35,7 @@ class EmailController extends Controller
         $redisHelper = app()->make(RedisHelperInterface::class);
         // TODO: Create implementation for storeRecentMessage and uncomment the following line
         // $redisHelper->storeRecentMessage(...);
-    }
 
-    //  TODO - BONUS: implement list method
-    public function list()
-    {
-
+        return response()->json(['message' => 'Emails have been sent successfully']);
     }
 }
