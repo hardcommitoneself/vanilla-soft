@@ -47,4 +47,13 @@ class ElasticsearchHelper implements ElasticsearchHelperInterface
 
         return $this->client->index($params);
     }
+
+    public function retrieveEmails(string $index): array
+    {
+        $params = [
+            'index' => $index
+        ];
+
+        return $this->client->search($params);
+    }
 }

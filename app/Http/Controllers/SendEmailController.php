@@ -4,9 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
-use App\Utilities\Contracts\ElasticsearchHelperInterface;
 use App\Integrations\ElasticsearchHelper;
-use App\Utilities\Contracts\RedisHelperInterface;
+use App\Integrations\RedisHelper;
 use App\Mail\SendVanillaSoftMail;
 
 class SendEmailController extends Controller
@@ -22,6 +21,9 @@ class SendEmailController extends Controller
         /** @var ElasticsearchHelper $elasticsearchHelper */
         $elasticsearchHelper = app()->make(ElasticsearchHelper::class);
 
+        /** @var RedisHelper $redisHelper */
+        $redisHelper = app()->make(RedisHelper::class);
+
         /** Send Email to reciepient users */
         $emails = $request->input('emails');
 
@@ -29,13 +31,12 @@ class SendEmailController extends Controller
             Mail::to(data_get($email, 'email'))
                 ->queue(new SendVanillaSoftMail($email));
         
-            $elasticsearchHelper->storeEmail(data_get($email, 'body'), data_get($email, 'subject'), data_get($email, 'email'));
+            /** Store mail information on elasticsearch */
+            $result = $elasticsearchHelper->storeEmail(data_get($email, 'body'), data_get($email, 'subject'), data_get($email, 'email'));
+        
+            /** Cache mail information on redis */
+            $redisHelper->storeRecentMessage(data_get($result, '_id'), data_get($email, 'subject'), data_get($email, 'email'));   
         }
-
-        /** @var RedisHelperInterface $redisHelper */
-        // $redisHelper = app()->make(RedisHelperInterface::class);
-        // TODO: Create implementation for storeRecentMessage and uncomment the following line
-        // $redisHelper->storeRecentMessage(...);
 
         return response()->json(['message' => 'Emails have been sent successfully']);
     }
